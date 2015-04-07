@@ -1,9 +1,10 @@
 cat `ls *100bp.telseq_elegans.TTAGGC.noreadgroup.txt` | grep -v 'Read' | cut -f 1,7 
 
 rm telseq_mmp.txt
-paste <(echo "File") <(head -n 1 VC30134.76bp.telseq_elegans.TTAGGC.noreadgroup.txt) >> telseq_mmp.txt
+paste <(echo "strain_length" | tr '_' '\t') <(head -n 1 VC30134.76bp.telseq_elegans.TTAGGC.noreadgroup.txt) >> telseq_mmp.txt
 for i in `ls *.telseq_elegans.TTAGGC.noreadgroup.txt`; do
-    awk -v i=${i} '{ print i "\t" $0}' $i | tr '.' '\t' | grep -v 'ReadGroup' >> telseq_mmp.txt
+    in=`echo ${i} | cut -f 1,2 -d '.'`
+    awk -v i=${in} '{ print i "\t" $0}' $i | tr '.' '\t' | grep -v 'ReadGroup' >> telseq_mmp.txt
 done;
 
 

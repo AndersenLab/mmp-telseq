@@ -17,6 +17,7 @@
 #SBATCH --workdir=/lscr2/andersenlab/dec211/mmp_telseq/sra
 
 import os, sys
+import glob
 import re
 import subprocess
 from subprocess import PIPE, Popen
@@ -131,7 +132,7 @@ def coverage(bam, mtchr = None):
             coverage += [(k,x[0], x[1])]
     return coverage
 
-line_num = int(sys.argv[1])
+line_num = int(sys.argv[1]) - 1
 
 
 f=open('../strain_info.txt')
@@ -146,17 +147,23 @@ reference = "/lscr2/andersenlab/dec211/pyPipeline/genomes/WS245/c_elegans.PRJNA1
 # Download sra files
 """for line in lines:
     for i in line[1:]:
-        i06 = i[0:6]
-        i09 = i[0:9]
-        loc_string = "ftp://ftp-trace.ncbi.nih.gov/sra/sra-instant/reads/ByRun/sra/SRR/{i06}/{i09}/{i}.sra"
-        loc_string = loc_string.format(**locals())
-        print "downloading " +  loc_string.format(**locals())
-        os.system("wget --directory-prefix sra {loc_string}".format(**locals()))
+        strain = line[0].split(" ")[2]
+        length = line[0].split(" ")[4]
+        if len(glob.glob("../telseq/{strain}.{length}*".format(**locals()))) == 0:
+            print strain, length
+            i06 = i[0:6]
+            i09 = i[0:9]
+            loc_string = "ftp://ftp-trace.ncbi.nih.gov/sra/sra-instant/reads/ByRun/sra/SRR/{i06}/{i09}/{i}.sra"
+            loc_string = loc_string.format(**locals())
+            print "downloading " +  loc_string.format(**locals())
+            print "curl {loc_string}".format(**locals())
+            os.system("curl {loc_string} > {i}.sra".format(**locals()))
 """
 
 # Process SRA Files
 for i in line[1:]:
     os.system("fastq-dump --split-files --gzip {i} ".format(i=i))
+    os.system("rm /exports/people/andersenlab/dec211/ncbi/public/{i}.sra".format(i=i))
     #os.system("rm {i}".format(**locals()))
     # Generate read group
     RG = r'@RG\tID:{i}\tSM:{strain_name}'.format(**locals())
@@ -171,8 +178,12 @@ for i in line[1:]:
 
 # Combine processed BAM Files.
 SRA_files = ' '.join(["../bam/" + x.replace(".sra","") + ".sorted.bam" for x in line[1:]])
-merge_command = "samtools merge -f -@ 4 ../bam/{strain_name}.{strain_bp}.bam {SRA_files} && samtools index ../bam/{strain_name}.{strain_bp}.bam".format(**locals())
-os.system(merge_command)
+if len(["../bam/" + x.replace(".sra","") + ".sorted.bam" for x in line[1:]]) > 1:
+    merge_command = "samtools merge -f -@ 4 ../bam/{strain_name}.{strain_bp}.bam {SRA_files} && samtools index ../bam/{strain_name}.{strain_bp}.bam".format(**locals())
+    os.system(merge_command)
+else:
+    os.system("mv {SRA_files} ../bam/{strain_name}.{strain_bp}.bam".format(**locals()))
+    os.system("samtools index ../bam/{strain_name}.{strain_bp}.bam".format(**locals()))
 
 for i in line[1:]:
     os.system("rm ../bam/{i}.sorted.bam && rm ../bam/{i}.sorted.bam.bai".format(i=i))
@@ -199,7 +210,8 @@ os.system("telseq -m -z 'GTATGC' -u ../bam/{strain_name}.{strain_bp}.bam -o ../t
 
 # Delete sra file 
 for i in line[1:]:
-    os.system("rm {i}.sra ".format(i=i))
+    #os.system("rm {i}.sra ".format(i=i))
+    pass
 
 # Delete bam file
 os.system("rm ../bam/{strain_name}.{strain_bp}.bam".format(**locals()))

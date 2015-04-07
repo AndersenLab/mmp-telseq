@@ -1,20 +1,27 @@
 cat `ls *100bp.telseq_elegans.TTAGGC.noreadgroup.txt` | grep -v 'Read' | cut -f 1,7 
 
-for i in `ls *100bp.telseq_elegans.TTAGGC.noreadgroup.txt`; do
-    awk -v i=${i} '{ print i "\t" $0}' $i | tr '.' '\t' | grep -v 'ReadGroup' >> telseq_stats.txt
+rm telseq_mmp.txt
+paste <(echo "File") <(head -n 1 VC30134.76bp.telseq_elegans.TTAGGC.noreadgroup.txt) >> telseq_mmp.txt
+for i in `ls *.telseq_elegans.TTAGGC.noreadgroup.txt`; do
+    awk -v i=${i} '{ print i "\t" $0}' $i | tr '.' '\t' | grep -v 'ReadGroup' >> telseq_mmp.txt
 done;
 
-sbatch mmp_telseq.py 0
-for i in `seq 1 300`; do sbatch mmp_telseq.py $i; done;
-for i in `seq 301 601`; do sbatch mmp_telseq.py $i; done;
 
 
 # START HERE
-for i in `seq 602 2529`; do sbatch mmp_telseq.py $i --nodelist=$(rand_element 2 3 4 5 6); done;
+for i in `seq 1 2600`; do 
+    line=$(sed -n "${i}p" "strain_info.txt")
+    strain=`echo $line | cut -f 3 -d ' '`
+    size=`echo $line | cut -f 5 -d ' '`
+    if [ ! -f telseq/${strain}.${size}.telseq_elegans.TTAGGC.noreadgroup.txt ]; then
+        echo $i
+        sbatch --nodelist=node$(rand_element 2 3 4 5) mmp_telseq.py $i;
+    fi
+done;
 
 
 rand() {
-	printf $((  $1 *  RANDOM  / 32767   ))
+    printf $((  $1 *  RANDOM  / 32767   ))
 }
 rand_element () {
     local -a th=("$@")

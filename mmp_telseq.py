@@ -162,8 +162,8 @@ reference = "/lscr2/andersenlab/dec211/pyPipeline/genomes/WS245/c_elegans.PRJNA1
 
 # Process SRA Files
 for i in line[1:]:
-    os.system("fastq-dump --split-files --gzip {i} ".format(i=i))
-    os.system("rm /exports/people/andersenlab/dec211/ncbi/public/{i}.sra".format(i=i))
+
+    os.system("fastq-dump --split-files --gzip {i}.sra ".format(i=i))
     #os.system("rm {i}".format(**locals()))
     # Generate read group
     RG = r'@RG\tID:{i}\tSM:{strain_name}'.format(**locals())
